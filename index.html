@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <title>都道府県アニメデータ</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="style/style.css">
+    <link rel="stylesheet" href="bootstrap/css/bootstrap.min.css">
+    <script src="js/jquery-3.3.1.min.js"></script>
+    <script src="js/d3.v3.min.js"></script>
+    <script src="js/d3sparql.js"></script>
+    <link rel="stylesheet" href="http://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/leaflet.css"/>
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/leaflet-src.js"></script>
+    <script src="./bootstrap/js/bootstrap.min.js"></script>
+    <script src="script/pref.js"></script> <!-- 経度緯度情報 -->
+    <script src="script/script.js"></script>
+    <script type="text/javascript">
+    function onButtonClick() {
+      var titleWord = document.getElementById("search").value;
+      if (titleWord !== "") {
+        var sparqlQ = "";
+        sparqlQ = sparqlQ + " " + "PREFIX bp: <http://data.lodanime.jp/property/>";
+        sparqlQ = sparqlQ + " " + "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>";
+        sparqlQ = sparqlQ + " " + "PREFIX cc: <http://creativecommons.org/ns#>";
+        sparqlQ = sparqlQ + " " + "PREFIX dc: <http://purl.org/dc/elements/1.1/>";
+        sparqlQ = sparqlQ + " " + "SELECT DISTINCT ?pref ?creator ?reader ?category ?year WHERE {";
+        sparqlQ = sparqlQ + " " + "?subject rdfs:label \"" + titleWord + "\"@ja; bp:都道府県 ?pref; dc:creator ?creator; bp:監督 ?reader; bp:カテゴリ ?category; bp:公開日および期間 ?year.";
+        sparqlQ = sparqlQ + " " + "}";
+        //document.getElementById("text").innerHTML = "<textarea>" + sparql + "</textarea>"
+        d3sparql.query("http://localhost:3030/animeFilm/query", sparqlQ, render1);
+      }
+    }
+    function year() {
+      var year1 = document.getElementById("year1").value;
+      var year2 = document.getElementById("year2").value;
+      if (year1 !== "0" && year2 !== "0"){
+        var sparqlQ = "";
+        sparqlQ = sparqlQ + " " + "PREFIX bp: <http://data.lodanime.jp/property/>";
+        sparqlQ = sparqlQ + " " + "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>";
+        sparqlQ = sparqlQ + " " + "PREFIX cc: <http://creativecommons.org/ns#>";
+        sparqlQ = sparqlQ + " " + "PREFIX dc: <http://purl.org/dc/elements/1.1/>";
+        sparqlQ = sparqlQ + " " + "SELECT DISTINCT ?label ?pref ?creator ?reader ?category ?year WHERE {";
+        sparqlQ = sparqlQ + " " + "{?subject rdfs:label ?label; bp:都道府県 ?pref; dc:creator ?creator; bp:監督 ?reader; bp:カテゴリ ?category; bp:公開日および期間 ?year.FILTER(REGEX(?year,\"^" + year1 +"\"))}";
+        for (var i = Number(year1); i + 1 <= Number(year2); i++) {
+          sparqlQ = sparqlQ + "UNION" + "{?subject rdfs:label ?label; bp:都道府県 ?pref; dc:creator ?creator; bp:監督 ?reader; bp:カテゴリ ?category; bp:公開日および期間 ?year.FILTER(REGEX(?year,\"^" + String(i + 1) +"\"))}";
+        }
+        sparqlQ = sparqlQ + " " + "}";
+        d3sparql.query("http://localhost:3030/animeFilm/query", sparqlQ, render2);
+      }
+    }
+    function render1(json) {
+      //document.getElementById("text").innerHTML = "<textarea>お家帰りたい</textarea>"
+      var config = {
+        "selector": "#result1"
+      }
+      d3sparql.htmltable(json, config)
+    }
+    function render2(json) {
+      //document.getElementById("text").innerHTML = "<textarea>お家帰りたい</textarea>"
+      var config = {
+        "selector": "#result2"
+      }
+      d3sparql.htmltable(json, config)
+    }
+    </script>
+  </head>
+  <body>
+    <main>
+      <h1>都道府県アニメデータ</h1>
+
+      <h2>・主要データ</h2>
+      <form method="post">
+        <p id="book">作品のタイトルを入力してください.</p>
+        <input type="search" id="search" name="search" placeholder="草" list="data">
+        <datalist id="data">
+          <option value="とある科学の超電磁砲"></option>
+          <option value="化物語"></option>
+          <option value="りゅうおうのおしごと！"></option>
+          <option value="やはり俺の青春ラブコメはまちがっている"></option>
+          <option value="ちびまる子ちゃん"></option>
+        </datalist>
+        <input type="button" value="検索" onclick="onButtonClick();">
+      </form>
+      <div id="result1"></div>
+
+      <h2>・公開していた年の作品の情報を取得</h2>
+      <form method="post">
+        <p id="book">作品の公開年を入力してください.</p>
+        <input type="search" id="year1" name="year1" placeholder="草">
+        ~
+        <input type="search" id="year2" name="year2" placeholder="草">
+        <input type="button" value="検索" onclick="year();">
+      </form>
+      <div id="result2"></div>
+
+      <h2>・モチーフとなった都道府県</h2>
+        <div class="wrapper">
+          <select id="query" class="form-control">
+            <option>変化前</option>
+      	    <option value="変化後">変化後</option>
+          </select>
+	        <div id="gmap"></div>
+        </div>
+    </main>
+  </body>
+</html>
